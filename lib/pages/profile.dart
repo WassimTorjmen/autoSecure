@@ -76,7 +76,9 @@ class _ProfilePage extends State<ProfilePage> {
                           Navigator.pushReplacement(
                             context,
                             CupertinoPageRoute(
-                              builder: (context) => const SplashScreen(),
+                              builder: (context) => const SplashScreen(
+                                pageSuivante: LoginPage(),
+                              ),
                             ),
                           );
                         }

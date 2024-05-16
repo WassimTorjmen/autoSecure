@@ -1,10 +1,10 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:autosecure/pages/login.dart';
 
 class SplashScreen extends StatelessWidget {
-  const SplashScreen({super.key});
+  final Widget pageSuivante;
+  const SplashScreen({super.key, required this.pageSuivante});
 
   @override
   Widget build(BuildContext context) {
@@ -15,7 +15,7 @@ class SplashScreen extends StatelessWidget {
     Future.delayed(splashDuration, () {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const LoginPage()),
+        MaterialPageRoute(builder: (context) => pageSuivante),
       );
     });
 

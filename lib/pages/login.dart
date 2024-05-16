@@ -33,14 +33,31 @@ class _LoginPageState extends State<LoginPage> {
 
   void _redirectToHome(String uid) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) =>
-              ProfilePage(uid: FirebaseAuth.instance.currentUser?.uid ?? ''),
-        ),
-      );
+      if (mounted) {
+        // Vérifie si le widget est encore monté
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ProfilePage(uid: uid),
+          ),
+          (route) => false, // Supprime toutes les routes de la pile
+        );
+      }
     });
+  }
+
+  void _googleSignInOnClick() async {
+    print("Attempting to sign in with Google");
+    final value = await _authServices.signInWithGoogle();
+    print("Google sign in response: $value");
+    if (value.isNotEmpty) {
+      _redirectToHome(value);
+    } else {
+      const snackBar = SnackBar(
+        content: Text('Google Sign in failed'),
+      );
+      ScaffoldMessenger.of(context).showSnackBar(snackBar);
+    }
   }
 
   Future<void> _checkCurrentUser() async {
@@ -162,9 +179,9 @@ class _LoginPageState extends State<LoginPage> {
                               if (_emailController.text.trim() ==
                                       'admin@gmail.com' ||
                                   _passcontroller.text.trim() == 'admin123') {
-                                _redirectToHome(uid);
+                                //_redirectToHome(uid);
                               } else {
-                                _redirectToHome(uid);
+                                //_redirectToHome(uid);
                               }
                             }
                           }
@@ -184,19 +201,7 @@ class _LoginPageState extends State<LoginPage> {
               ),
               AuthButton(
                 imagePath: "lib/media/google_icon.png",
-                onClick: () async {
-                  print("Attempting to sign in with Google");
-                  final value = await _authServices.signInWithGoogle();
-                  print("Google sign in response: $value");
-                  if (value.isNotEmpty) {
-                    _redirectToHome(value);
-                  } else {
-                    const snackBar = SnackBar(
-                      content: Text('Google Sign in failed'),
-                    );
-                    ScaffoldMessenger.of(context).showSnackBar(snackBar);
-                  }
-                },
+                onClick: _googleSignInOnClick,
               ),
               const SizedBox(
                 width: 18,

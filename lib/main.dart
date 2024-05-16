@@ -1,9 +1,9 @@
 import 'package:autosecure/components/splash_screen.dart';
-import 'package:autosecure/pages/login.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 
 import 'firebase_options.dart';
+import 'pages/login.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -20,13 +20,15 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'MyShop',
+      title: 'AutoSecure',
       theme: ThemeData(
         primarySwatch: Colors.purple,
         hintColor: Colors.deepOrange,
         fontFamily: 'Lato',
       ),
-      home: const SplashScreen(),
+      home: const SplashScreen(
+        pageSuivante: LoginPage(),
+      ),
     );
   }
 }

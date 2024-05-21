@@ -22,7 +22,7 @@ class SplashScreen extends StatelessWidget {
     return Scaffold(
       body: Center(
         child: Image.asset(
-          'lib/media/splash_img.gif', // Chemin vers votre image GIF
+          'lib/assets/splash_img.gif', // Chemin vers votre image GIF
           width: 200, // Ajustez la taille selon vos besoins
           height: 200,
           // Vous pouvez également ajouter des options de décodage pour les images GIF si nécessaire

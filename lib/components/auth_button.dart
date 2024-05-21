@@ -2,17 +2,19 @@ import 'package:flutter/material.dart';
 
 class AuthButton extends StatelessWidget {
   final String imagePath;
+  final String text;
   final Function()? onClick;
   const AuthButton({
     super.key,
     required this.imagePath,
     required this.onClick,
+    required this.text,
   });
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 230,
+      width: 235,
       height: 50,
       child: ElevatedButton(
         onPressed: onClick,
@@ -32,9 +34,9 @@ class AuthButton extends StatelessWidget {
             const SizedBox(
               width: 10,
             ),
-            const Text(
-              'Sign in with Google',
-              style: TextStyle(
+            Text(
+              text,
+              style: const TextStyle(
                 color: Colors.black,
                 fontSize: 16,
               ),

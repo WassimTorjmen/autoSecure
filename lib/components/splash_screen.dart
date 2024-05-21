@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:autosecure/pages/login.dart';
 
 class SplashScreen extends StatelessWidget {
   final Widget pageSuivante;

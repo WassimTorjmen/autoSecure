@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../components/button_component.dart';
-import '../components/smsAuth_button.dart';
 import '../services/auth_services.dart';
 import '../components/text_field_component.dart';
 import '../components/auth_button.dart';

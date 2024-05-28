@@ -1,10 +1,13 @@
+import 'dart:io';
+
+import 'package:autosecure/components/profile_text_field.dart';
 import 'package:autosecure/components/splash_screen.dart';
 import 'package:autosecure/pages/login.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:autosecure/services/auth_services.dart'; // Importez le service AuthService
+import 'package:autosecure/services/auth_services.dart';
 
 class ProfilePage extends StatefulWidget {
   final String uid;
@@ -16,10 +19,12 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePage extends State<ProfilePage> {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final _authServices = AuthService();
   User? user = FirebaseAuth.instance.currentUser;
 
+  String fname = '';
+  String email = '';
+  String phoneNumber = '';
   Map<String, dynamic>? userData;
 
   @override
@@ -29,15 +34,38 @@ class _ProfilePage extends State<ProfilePage> {
   }
 
   Future<void> _fetchUserData() async {
-    if (user != null) {
-      print("UID: '${widget.uid}'");
-      DocumentSnapshot userDoc =
-          await _firestore.collection('users').doc(widget.uid).get();
-      if (userDoc.exists) {
-        setState(() {
-          userData = userDoc.data() as Map<String, dynamic>?;
-        });
-      }
+    try {
+      var data = await _authServices.getUserData(widget.uid);
+      setState(() {
+        userData = data;
+
+        // Utilisez les méthodes correctes pour mettre à jour les valeurs par défaut
+        userData!['photoURL'] =
+            userData!['photoURL'] ?? 'https://via.placeholder.com/150';
+        fname =
+            userData!['full name'] = userData!['full name'] ?? 'Unavailable';
+        email = userData!['email'] = userData!['email'] ?? 'Unavailable';
+        phoneNumber = userData!['phoneNumber'] =
+            userData!['phoneNumber'] ?? 'Unavailable';
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Failed to fetch user data: $e")));
+      // Gérer l'erreur éventuellement en affichant un message à l'utilisateur
+    }
+  }
+
+  ImageProvider getImageProvider(String? imagePath) {
+    if (imagePath == null) {
+      return const NetworkImage('https://via.placeholder.com/150');
+    }
+
+    // Vérifie si le chemin commence par 'http'
+    if (imagePath.startsWith('http')) {
+      return NetworkImage(imagePath);
+    } else {
+      // C'est un chemin de fichier local
+      return FileImage(File(imagePath));
     }
   }
 
@@ -45,7 +73,7 @@ class _ProfilePage extends State<ProfilePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Home'),
+        title: const Text('Profile'),
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
@@ -69,7 +97,7 @@ class _ProfilePage extends State<ProfilePage> {
                       backgroundColor: Colors.green,
                       child: const Text('Yes'),
                       onPressed: () async {
-                        await _authServices.logout();
+                        await _authServices.logout(context);
                         final isUserLoggedIn =
                             await _authServices.isUserLoggedIn();
                         if (!isUserLoggedIn) {
@@ -100,20 +128,20 @@ class _ProfilePage extends State<ProfilePage> {
                     const SizedBox(height: 20),
                     CircleAvatar(
                       radius: 50,
-                      backgroundImage: NetworkImage(userData!['photoURL'] ??
-                          'https://via.placeholder.com/150'),
+                      backgroundImage: getImageProvider(userData!['photoURL']),
                       backgroundColor: Colors.transparent,
                     ),
                     const SizedBox(height: 20),
-                    Text(
-                      'Name: ${userData!['name']}',
-                      style: const TextStyle(fontSize: 20),
-                    ),
+                    DisabledTextField(
+                        value: fname, label: 'Full Name', icon: Icons.person),
                     const SizedBox(height: 10),
-                    Text(
-                      'Email: ${userData!['email']}',
-                      style: const TextStyle(fontSize: 20),
-                    ),
+                    DisabledTextField(
+                        value: email, label: 'Email', icon: Icons.email),
+                    const SizedBox(height: 10),
+                    DisabledTextField(
+                        value: phoneNumber,
+                        label: 'Phone Number',
+                        icon: Icons.phone),
                   ],
                 ),
               ),

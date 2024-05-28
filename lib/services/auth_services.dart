@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 import '../models/end_user.dart';
+import '../pages/login.dart';
 
 class AuthService extends ChangeNotifier {
   final FirebaseFirestore _firebaseFirestore = FirebaseFirestore.instance;
@@ -70,7 +71,7 @@ class AuthService extends ChangeNotifier {
   Future<void> _storeUserData(User user) async {
     await _firebaseFirestore.collection('users').doc(user.uid).set({
       // Utilisez le nom d'utilisateur ou la partie locale de l'email
-      'name': user.displayName ?? user.email?.split('@')[0],
+      'full name': user.displayName ?? user.email?.split('@')[0],
       'email': user.email ?? '',
       'photoURL': user.photoURL ?? '',
     }, SetOptions(merge: true));
@@ -81,51 +82,54 @@ class AuthService extends ChangeNotifier {
     return user != null;
   }
 
-  Future addUserToCollection(EndUser newUser, String? uid) async {
+  /*Future addUserToCollection(EndUser newUser, String? uid) async {
     await _firebaseFirestore.collection('users').doc(uid).set(newUser.toJson());
   }
-
-  Future<void> logout() async {
+*/
+  Future<void> logout(BuildContext context) async {
     try {
-      print('logging out...');
-      await _googleSignIn.disconnect();
+      await _googleSignIn.signOut();
       await _firebaseAuth.signOut();
+      // Utilisez pushAndRemoveUntil pour retirer toutes les routes précédentes
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => LoginPage()),
+        (Route<dynamic> route) => false,
+      );
     } catch (e) {
       print(e.toString());
     }
   }
 
 //envoyer le code de verification au numero de telephone
-  Future<void> sendCodeToPhoneNumber(String phoneNumber, BuildContext context,
-      Function(String, int?) onCodeSent) async {
-    //print(PhoneNumber);
-    await _firebaseAuth.verifyPhoneNumber(
-      phoneNumber: phoneNumber,
-      verificationCompleted: (PhoneAuthCredential credential) async {
-        await _firebaseAuth.signInWithCredential(credential);
-      },
-      verificationFailed: (FirebaseAuthException e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text('Failed to Verify Phone Number: ${e.message}')),
-        );
-        if (e.code == 'invalid-phone-number') {
-          print('The provided phone number is not valid.');
-        }
-        print('Failed to Verify Phone Number: ${e.message}');
-      },
-      codeSent: (String verificationId, int? resendToken) {
-        print("Verification code sent to the phone number");
-        onCodeSent(verificationId, resendToken);
-      },
-      codeAutoRetrievalTimeout: (String verificationId) {
-        print("Auto retrieval timeout: $verificationId");
-      },
-    );
+  Future<bool> sendCodeToPhoneNumber(
+      String phoneNumber, Function(String, int?) onCodeSent) async {
+    try {
+      await _firebaseAuth.verifyPhoneNumber(
+        phoneNumber: phoneNumber,
+        verificationCompleted: (PhoneAuthCredential credential) async {
+          await _firebaseAuth.signInWithCredential(credential);
+          // Vous pouvez notifier ici si nécessaire
+        },
+        verificationFailed: (FirebaseAuthException e) {
+          if (e.code == 'invalid-phone-number') {
+            print('The provided phone number is not valid.');
+          }
+          print('Failed to Verify Phone Number: ${e.message}');
+          throw Exception('Failed to Verify Phone Number: ${e.message}');
+        },
+        codeSent: onCodeSent,
+        codeAutoRetrievalTimeout: (String verificationId) {
+          print("Auto retrieval timeout: $verificationId");
+        },
+      );
+      return true;
+    } catch (e) {
+      print(e);
+      return false;
+    }
   }
 
-  Future<User?> verifyOTP(
-      String verificationId, String smsCode, BuildContext context) async {
+  Future<User?> verifyOTP(String verificationId, String smsCode) async {
     try {
       PhoneAuthCredential credential = PhoneAuthProvider.credential(
         verificationId: verificationId,
@@ -136,35 +140,43 @@ class AuthService extends ChangeNotifier {
           await _firebaseAuth.signInWithCredential(credential);
 
       if (userCredential.user != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Phone number verified!")));
-        notifyListeners(); // Utile si vous utilisez Provider ou un autre state management
+        notifyListeners(); // Si vous utilisez Provider ou un autre gestionnaire d'état
         return userCredential.user; // Retourne l'utilisateur vérifié
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text("Failed to verify OTP: No user returned")));
       }
     } catch (e) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text("Failed to verify OTP: $e")));
+      print("Failed to verify OTP: $e");
     }
     return null;
   }
 
-  Future<bool> createProfileWithPhone(
-      {required String userId,
-      required String firstName,
-      required String lastName,
-      required String password,
-      String? imagePath}) async {
+  Future<User?> getUserByPhoneNumber(String phoneNumber) async {
+    // Rechercher l'utilisateur par numéro de téléphone
+    var userQuery = await _firebaseFirestore
+        .collection('users')
+        .where('phoneNumber', isEqualTo: phoneNumber)
+        .limit(1)
+        .get();
+
+    if (userQuery.docs.isNotEmpty) {
+      // Convertir le premier document trouvé en objet User
+      return _firebaseAuth
+          .currentUser; // ou retourner un objet utilisateur personnalisé
+    }
+    return null;
+  }
+
+  Future<bool> createProfileWithPhone({
+    required String userId,
+    required String firstName,
+    required String lastName,
+    required String phoneNumber,
+    String? imagePath,
+  }) async {
     try {
-      // Vous pouvez également ajouter ici une logique pour stocker l'image dans un stockage Cloud si nécessaire
       await FirebaseFirestore.instance.collection('users').doc(userId).set({
-        'firstName': firstName,
-        'lastName': lastName,
-        'password':
-            password, // Pensez à sécuriser le stockage des mots de passe
-        'imagePath': imagePath
+        'full name': firstName + lastName,
+        'phoneNumber': phoneNumber,
+        'photoURL': imagePath,
       });
       return true;
     } catch (e) {
@@ -184,19 +196,14 @@ class AuthService extends ChangeNotifier {
   }*/
 
 //Signup Email/Pass
-  Future<User?> registerUser(String email, String password) async {
+  Future<User?> registerUser(
+      String email, String password, String fullName) async {
     try {
       UserCredential userCredential = await _firebaseAuth
           .createUserWithEmailAndPassword(email: email, password: password);
       User? user = userCredential.user;
       if (user != null) {
         await user.sendEmailVerification();
-        user.reload().then((_) {
-          if (user.emailVerified) {
-            _storeUserData(
-                user); // Stocker les données après la vérification de l'email
-          }
-        });
         return user;
       } else {
         return null;
@@ -207,37 +214,33 @@ class AuthService extends ChangeNotifier {
     }
   }
 
-  Future<bool> isEmailVerified() async {
-    User? user = _firebaseAuth.currentUser;
-    if (user != null) {
-      await user.reload();
-      return user.emailVerified;
+  Future<void> checkEmailVerified(User user) async {
+    await user.reload();
+    if (user.emailVerified) {
+      print("email is verified");
+      await createUserDocument(user);
     }
-    return false;
   }
 
   // Créer le document de chaque utilisateur ayant fait le signup
   Future<void> createUserDocument(User user) async {
-    await user.reload(); // Assurez-vous que l'état de l'utilisateur est à jour
-    if (user.emailVerified) {
-      try {
-        // Créer le document utilisateur avec les informations nécessaires
-        await _storeUserData(user);
-        print("User document created successfully for UID: ${user.uid}.");
-      } catch (e) {
-        print('Failed to create user document for UID: ${user.uid}, error: $e');
-      }
-    } else {
-      print(
-          'Email not verified yet for UID: ${user.uid}. Please verify email to complete registration.');
+    try {
+      await _firebaseFirestore.collection('users').doc(user.uid).set({
+        'email': user.email,
+        'uid': user.uid,
+        // Ajoutez d'autres attributs ici si nécessaire
+      });
+      print("User document created successfully for UID: ${user.uid}.");
+    } catch (e) {
+      print('Failed to create user document for UID: ${user.uid}, error: $e');
     }
   }
 
-  /*Future<DocumentSnapshot> getUserData(String userID) async {
+/*Future<DocumentSnapshot> getUserData(String userID) async {
     return _firebaseFirestore.collection('users').doc(userID).get();
   }*/
 
-  /*Future<Map<String, dynamic>> getUserData(String uid) async {
+  Future<Map<String, dynamic>> getUserData(String uid) async {
     try {
       // Récupérer les données de l'utilisateur à partir de Firestore
       DocumentSnapshot userSnapshot =
@@ -253,8 +256,8 @@ class AuthService extends ChangeNotifier {
       }
     } catch (e) {
       print('Failed to get user data: $e');
-      // En cas d'erreur, retourner une Map vide ou null selon votre préférence
+      // En cas d'erreur, retourner une Map vide
       return {};
     }
-  }*/
+  }
 }

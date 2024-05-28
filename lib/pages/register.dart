@@ -16,13 +16,15 @@ class SignUpPage extends StatefulWidget {
 class _SignUpPageState extends State<SignUpPage> {
   final AuthService _authService = AuthService();
 
+  final TextEditingController _fullNameController = TextEditingController();
+
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController =
       TextEditingController();
-
   @override
   void dispose() {
+    _fullNameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
@@ -35,7 +37,7 @@ class _SignUpPageState extends State<SignUpPage> {
     return Scaffold(
       body: SafeArea(
         child: SizedBox(
-          height: height,
+          height: 900,
           child: Stack(
             children: <Widget>[
               Positioned(
@@ -59,6 +61,13 @@ class _SignUpPageState extends State<SignUpPage> {
                             color: Colors.purple),
                       ),
                       const SizedBox(height: 50),
+                      TextFieldComponent(
+                        controller: _fullNameController,
+                        labelText: "Full Name",
+                        hintText: "Enter your Full Name",
+                        icon: Icons.person,
+                        initiallyObscure: false,
+                      ),
                       TextFieldComponent(
                         controller: _emailController,
                         labelText: "Email",
@@ -167,11 +176,19 @@ class _SignUpPageState extends State<SignUpPage> {
           const SnackBar(content: Text('Passwords do not match')));
       return;
     }
+    if (_emailController.text.length < 6 ||
+        _passwordController.text.length < 6) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Email and Password must be at least 6 characters')));
+      return;
+    }
 
     User? newUser = await _authService.registerUser(
       _emailController.text.trim(),
       _passwordController.text.trim(),
+      _fullNameController.text.trim(),
     );
+
 
     if (newUser != null && newUser.emailVerified) {
       // Navigate to the Profile Page if the email is already verified

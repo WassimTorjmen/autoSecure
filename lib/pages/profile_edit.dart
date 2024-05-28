@@ -6,9 +6,9 @@ import 'profile.dart';
 
 class UserProfileCreationPage extends StatefulWidget {
   final String uid;
-
-  const UserProfileCreationPage({Key? key, required this.uid})
-      : super(key: key);
+  final String phoneNumber;
+  const UserProfileCreationPage(
+      {super.key, required this.uid, required this.phoneNumber});
 
   @override
   _UserProfileCreationPageState createState() =>
@@ -19,7 +19,7 @@ class _UserProfileCreationPageState extends State<UserProfileCreationPage> {
   final AuthService _authService = AuthService();
   final TextEditingController _firstNameController = TextEditingController();
   final TextEditingController _lastNameController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
+
   File? _image;
   bool _isLoading = false;
 
@@ -34,10 +34,8 @@ class _UserProfileCreationPageState extends State<UserProfileCreationPage> {
     }
   }
 
-  void _createUserProfile() async {
-    if (_firstNameController.text.isEmpty ||
-        _lastNameController.text.isEmpty ||
-        _passwordController.text.isEmpty) {
+  _createUserProfile() async {
+    if (_firstNameController.text.isEmpty || _lastNameController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("All fields are required")));
       return;
@@ -51,7 +49,7 @@ class _UserProfileCreationPageState extends State<UserProfileCreationPage> {
         userId: widget.uid,
         firstName: _firstNameController.text,
         lastName: _lastNameController.text,
-        password: _passwordController.text,
+        phoneNumber: widget.phoneNumber, // Passer le numéro de téléphone
         imagePath: _image?.path);
 
     setState(() {
@@ -76,7 +74,7 @@ class _UserProfileCreationPageState extends State<UserProfileCreationPage> {
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: _isLoading
-            ? Center(child: CircularProgressIndicator())
+            ? const Center(child: CircularProgressIndicator())
             : SingleChildScrollView(
                 child: Column(
                   children: <Widget>[
@@ -87,7 +85,7 @@ class _UserProfileCreationPageState extends State<UserProfileCreationPage> {
                         backgroundImage:
                             _image != null ? FileImage(_image!) : null,
                         child: _image == null
-                            ? Icon(Icons.add_a_photo, size: 55)
+                            ? const Icon(Icons.add_a_photo, size: 55)
                             : null,
                       ),
                     ),
@@ -101,18 +99,29 @@ class _UserProfileCreationPageState extends State<UserProfileCreationPage> {
                       decoration: const InputDecoration(labelText: 'Last Name'),
                     ),
                     TextField(
-                      controller: _passwordController,
-                      decoration: const InputDecoration(labelText: 'Password'),
-                      obscureText: true,
+                      controller:
+                          TextEditingController(text: widget.phoneNumber),
+                      decoration:
+                          const InputDecoration(labelText: 'Phone Number'),
+                      enabled: false,
                     ),
                     const SizedBox(height: 20),
                     ElevatedButton(
-                        onPressed: _createUserProfile,
+                        onPressed: _registerUser,
                         child: const Text('Create Profile'))
                   ],
                 ),
               ),
       ),
     );
+  }
+
+  Future<void> _registerUser() async {
+    if (_firstNameController.text.isEmpty || _lastNameController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please fill in all fields')));
+      return;
+    }
+    _createUserProfile();
   }
 }

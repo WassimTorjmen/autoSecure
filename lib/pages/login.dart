@@ -18,7 +18,6 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   final AuthService _authServices = AuthService();
-
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passController = TextEditingController();
 
@@ -50,7 +49,10 @@ class _LoginPageState extends State<LoginPage> {
   void _googleSignInOnClick() async {
     final String uid = await _authServices.signInWithGoogle();
     if (uid.isNotEmpty) {
-      _redirectToHome(uid);
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => ProfilePage(uid: uid)),
+        (Route<dynamic> route) => false,
+      );
     } else {
       ScaffoldMessenger.of(context)
           .showSnackBar(const SnackBar(content: Text('Google Sign in failed')));
@@ -128,7 +130,7 @@ class _LoginPageState extends State<LoginPage> {
                   imagePath: "lib/assets/google_icon.png",
                   text: 'With Google',
                   onClick: _googleSignInOnClick),
-              const SizedBox(height: 200),
+              const SizedBox(height: 155),
               CupertinoButton(
                 onPressed: () => Navigator.push(
                   context,
